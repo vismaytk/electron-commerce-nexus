@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 
 const LoginPage = () => {
-  const { login, register, isLoading } = useAuth();
+  const { login, register, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -27,6 +27,13 @@ const LoginPage = () => {
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
   const [registerError, setRegisterError] = useState('');
+  
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, from, isLoading]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,13 +71,14 @@ const LoginPage = () => {
     
     const success = await register(registerName, registerEmail, registerPassword);
     if (success) {
-      navigate(from, { replace: true });
+      // In real Supabase Auth, the user would need to verify their email
+      // so we don't automatically navigate away
     }
   };
   
   return (
     <div className="container-custom py-12">
-      <div className="max-w-md mx-auto bg-white rounded-lg shadow-sm overflow-hidden">
+      <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
         <div className="px-6 py-8">
           <h1 className="text-2xl font-display font-bold text-center mb-6">Welcome to ElectroNexus</h1>
           
@@ -100,7 +108,7 @@ const LoginPage = () => {
                       <Label htmlFor="password">Password</Label>
                       <a 
                         href="#" 
-                        className="text-sm text-tech-blue hover:text-tech-blue-dark transition-colors"
+                        className="text-sm text-tech-blue hover:text-tech-blue-dark dark:text-tech-blue-light dark:hover:text-tech-blue transition-colors"
                       >
                         Forgot password?
                       </a>
@@ -116,12 +124,12 @@ const LoginPage = () => {
                   </div>
                   
                   {loginError && (
-                    <div className="text-red-500 text-sm">{loginError}</div>
+                    <div className="text-red-500 dark:text-red-400 text-sm">{loginError}</div>
                   )}
                   
                   <Button 
                     type="submit" 
-                    className="w-full bg-tech-blue hover:bg-tech-blue-dark transition-colors"
+                    className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark transition-colors"
                     disabled={isLoading}
                   >
                     {isLoading ? 'Logging in...' : 'Login'}
@@ -130,13 +138,13 @@ const LoginPage = () => {
               </form>
               
               <div className="mt-6">
-                <p className="text-center text-sm text-gray-500">
+                <p className="text-center text-sm text-gray-500 dark:text-gray-400">
                   For demo purposes, you can use:
                 </p>
-                <p className="text-center text-sm text-gray-500">
+                <p className="text-center text-sm text-gray-500 dark:text-gray-400">
                   User: user@example.com / Password: user123
                 </p>
-                <p className="text-center text-sm text-gray-500">
+                <p className="text-center text-sm text-gray-500 dark:text-gray-400">
                   Admin: admin@example.com / Password: admin123
                 </p>
               </div>
@@ -194,12 +202,12 @@ const LoginPage = () => {
                   </div>
                   
                   {registerError && (
-                    <div className="text-red-500 text-sm">{registerError}</div>
+                    <div className="text-red-500 dark:text-red-400 text-sm">{registerError}</div>
                   )}
                   
                   <Button 
                     type="submit" 
-                    className="w-full bg-tech-blue hover:bg-tech-blue-dark transition-colors"
+                    className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark transition-colors"
                     disabled={isLoading}
                   >
                     {isLoading ? 'Creating Account...' : 'Create Account'}
@@ -212,11 +220,11 @@ const LoginPage = () => {
           <Separator className="my-6" />
           
           <div className="text-center">
-            <p className="text-sm text-gray-500 mb-6">
-              By signing in or creating an account, you agree to our <a href="#" className="text-tech-blue hover:text-tech-blue-dark transition-colors">Terms of Service</a> and <a href="#" className="text-tech-blue hover:text-tech-blue-dark transition-colors">Privacy Policy</a>.
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              By signing in or creating an account, you agree to our <a href="#" className="text-tech-blue hover:text-tech-blue-dark dark:text-tech-blue-light dark:hover:text-tech-blue transition-colors">Terms of Service</a> and <a href="#" className="text-tech-blue hover:text-tech-blue-dark dark:text-tech-blue-light dark:hover:text-tech-blue transition-colors">Privacy Policy</a>.
             </p>
             
-            <Link to="/" className="text-tech-blue hover:text-tech-blue-dark transition-colors">
+            <Link to="/" className="text-tech-blue hover:text-tech-blue-dark dark:text-tech-blue-light dark:hover:text-tech-blue transition-colors">
               Return to Home
             </Link>
           </div>
