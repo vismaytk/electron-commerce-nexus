@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const LoginPage = () => {
   const { login, signup, isAuthenticated, isLoading } = useAuth();
@@ -71,10 +74,11 @@ const LoginPage = () => {
     }
     
     try {
-      await signup(registerName, registerEmail, registerPassword);
+      await signup(registerEmail, registerPassword, registerName);
       // In real Supabase Auth, the user would need to verify their email
       // so we don't automatically navigate away
     } catch (error: any) {
+      console.error('Registration error:', error);
       setRegisterError(error.message || 'Registration failed');
     }
   };
@@ -127,7 +131,10 @@ const LoginPage = () => {
                   </div>
                   
                   {loginError && (
-                    <div className="text-red-500 dark:text-red-400 text-sm">{loginError}</div>
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{loginError}</AlertDescription>
+                    </Alert>
                   )}
                   
                   <Button 
@@ -172,7 +179,7 @@ const LoginPage = () => {
                     <Label htmlFor="register-email">Email</Label>
                     <Input
                       id="register-email"
-                      type="email"
+                      type="text" 
                       placeholder="Enter your email"
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
@@ -205,7 +212,10 @@ const LoginPage = () => {
                   </div>
                   
                   {registerError && (
-                    <div className="text-red-500 dark:text-red-400 text-sm">{registerError}</div>
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{registerError}</AlertDescription>
+                    </Alert>
                   )}
                   
                   <Button 
