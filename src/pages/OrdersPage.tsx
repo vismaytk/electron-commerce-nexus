@@ -37,7 +37,6 @@ const OrdersPage: React.FC = () => {
           throw error;
         }
 
-        // Format the data to match our Order type
         const formattedOrders: Order[] = data.map(order => ({
           id: order.id,
           userId: order.user_id,
@@ -107,7 +106,7 @@ const OrdersPage: React.FC = () => {
               <Badge
                 variant={
                   order.status === 'completed'
-                    ? 'success'
+                    ? 'secondary'
                     : order.status === 'processing'
                     ? 'secondary'
                     : order.status === 'failed'

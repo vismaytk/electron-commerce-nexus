@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 
 const LoginPage = () => {
-  const { login, register, isAuthenticated, isLoading } = useAuth();
+  const { login, signup, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -44,9 +43,11 @@ const LoginPage = () => {
       return;
     }
     
-    const success = await login(loginEmail, loginPassword);
-    if (success) {
+    try {
+      await login(loginEmail, loginPassword);
       navigate(from, { replace: true });
+    } catch (error: any) {
+      setLoginError(error.message || 'Login failed');
     }
   };
   
@@ -69,10 +70,12 @@ const LoginPage = () => {
       return;
     }
     
-    const success = await register(registerName, registerEmail, registerPassword);
-    if (success) {
+    try {
+      await signup(registerName, registerEmail, registerPassword);
       // In real Supabase Auth, the user would need to verify their email
       // so we don't automatically navigate away
+    } catch (error: any) {
+      setRegisterError(error.message || 'Registration failed');
     }
   };
   
