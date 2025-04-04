@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
@@ -97,7 +96,7 @@ const CheckoutPage = () => {
           const script = document.createElement('script');
           script.src = 'https://checkout.razorpay.com/v1/checkout.js';
           script.onload = resolve;
-          script.onerror = reject;
+          script.onerror = () => reject(new Error('Failed to load Razorpay SDK'));
           document.body.appendChild(script);
         });
       }
@@ -110,7 +109,14 @@ const CheckoutPage = () => {
           user_id: user.id,
           order_details: {
             shipping_address: shippingAddress,
-            items: cartItems
+            items: cartItems.map(item => ({
+              product: {
+                id: item.product.id,
+                name: item.product.name,
+                price: item.product.price
+              },
+              quantity: item.quantity
+            }))
           }
         }
       });
@@ -142,6 +148,8 @@ const CheckoutPage = () => {
         },
         handler: async function(response: any) {
           try {
+            toast.loading('Verifying payment...');
+            
             // Verify payment
             const verifyResponse = await supabase.functions.invoke('verify-razorpay-payment', {
               body: {
@@ -167,21 +175,55 @@ const CheckoutPage = () => {
             
             toast.success('Payment successful! Your order has been placed.');
           } catch (error: any) {
-            toast.error(`Payment verification failed: ${error.message}`);
+            console.error('Payment verification error:', error);
+            toast.error('Payment verification failed', {
+              description: error.message,
+              action: {
+                label: 'View Order',
+                onClick: () => navigate(`/orders/${data.db_order_id}`)
+              }
+            });
             setIsProcessing(false);
           }
         },
         modal: {
           ondismiss: function() {
-            toast.info('Payment cancelled');
+            toast.info('Payment cancelled', {
+              description: 'You can try the payment again or modify your cart',
+              action: {
+                label: 'Try Again',
+                onClick: () => handlePayment()
+              }
+            });
             setIsProcessing(false);
-          }
+          },
+          escape: true,
+          backdropClose: false
         }
+      });
+      
+      razorpay.on('payment.failed', function(response: any) {
+        console.error('Payment failed:', response.error);
+        toast.error('Payment failed', {
+          description: response.error.description,
+          action: {
+            label: 'Try Again',
+            onClick: () => handlePayment()
+          }
+        });
+        setIsProcessing(false);
       });
       
       razorpay.open();
     } catch (error: any) {
-      toast.error(`Payment failed: ${error.message}`);
+      console.error('Payment initialization error:', error);
+      toast.error('Payment failed', {
+        description: error.message,
+        action: {
+          label: 'Try Again',
+          onClick: () => handlePayment()
+        }
+      });
       setIsProcessing(false);
     }
   };

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -31,7 +30,25 @@ serve(async (req) => {
 
     if (!amount || !user_id || !order_details) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ 
+          error: "Missing required fields",
+          details: {
+            amount: !amount ? "Amount is required" : null,
+            user_id: !user_id ? "User ID is required" : null,
+            order_details: !order_details ? "Order details are required" : null
+          }
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Validate amount
+    if (amount <= 0) {
+      return new Response(
+        JSON.stringify({ error: "Amount must be greater than 0" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -41,57 +58,109 @@ serve(async (req) => {
 
     // Create Razorpay order
     const auth = btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`);
-    const response = await fetch("https://api.razorpay.com/v1/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${auth}`,
-      },
-      body: JSON.stringify({
-        amount: amount * 100, // Convert to paise (Razorpay uses smallest currency unit)
-        currency,
-        receipt: `order_${Date.now()}`,
-      }),
-    });
+    let razorpayOrder;
+    try {
+      const response = await fetch("https://api.razorpay.com/v1/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${auth}`,
+        },
+        body: JSON.stringify({
+          amount: Math.round(amount * 100), // Convert to paise and ensure it's an integer
+          currency,
+          receipt: `order_${Date.now()}`,
+          notes: {
+            user_id: user_id,
+          },
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Razorpay error: ${JSON.stringify(errorData)}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Razorpay API error: ${JSON.stringify(errorData)}`);
+      }
+
+      razorpayOrder = await response.json();
+    } catch (error) {
+      console.error("Razorpay order creation failed:", error);
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to create Razorpay order",
+          details: error.message
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    const razorpayOrder = await response.json();
-
     // Save order to database
-    const { data: orderData, error: orderError } = await supabase
-      .from("orders")
-      .insert({
-        user_id,
-        total: amount,
-        status: "pending",
-        shipping_address: order_details.shipping_address,
-        razorpay_order_id: razorpayOrder.id,
-      })
-      .select()
-      .single();
+    let orderData;
+    try {
+      const { data, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          user_id,
+          total: amount,
+          status: "pending",
+          shipping_address: order_details.shipping_address,
+          razorpay_order_id: razorpayOrder.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
 
-    if (orderError) {
-      throw new Error(`Database error: ${orderError.message}`);
+      if (orderError) throw orderError;
+      orderData = data;
+    } catch (error) {
+      console.error("Database order creation failed:", error);
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to create order in database",
+          details: error.message
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     // Add order items
-    const orderItems = order_details.items.map((item: any) => ({
-      order_id: orderData.id,
-      product_id: item.product.id,
-      quantity: item.quantity,
-      price_at_purchase: item.product.price,
-    }));
+    try {
+      const orderItems = order_details.items.map((item: any) => ({
+        order_id: orderData.id,
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price_at_purchase: item.product.price,
+      }));
 
-    const { error: itemsError } = await supabase
-      .from("order_items")
-      .insert(orderItems);
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(orderItems);
 
-    if (itemsError) {
-      throw new Error(`Database error: ${itemsError.message}`);
+      if (itemsError) throw itemsError;
+    } catch (error) {
+      console.error("Database order items creation failed:", error);
+      // Attempt to delete the created order since items failed
+      await supabase
+        .from("orders")
+        .delete()
+        .eq("id", orderData.id);
+
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to create order items",
+          details: error.message
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     return new Response(
