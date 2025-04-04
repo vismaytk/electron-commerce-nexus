@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, Search, X, ShoppingCart, User } from 'lucide-react';
@@ -17,13 +16,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import useMobile from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import ThemeToggle from '@/components/ThemeToggle';
 
 const Header = () => {
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const { cartCount } = useCart();
