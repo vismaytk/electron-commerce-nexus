@@ -1,8 +1,7 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
 import { toast } from 'sonner';
-import supabase from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
@@ -19,7 +18,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Check initial auth state
   useEffect(() => {
     const checkUser = async () => {
       try {
@@ -30,7 +28,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (session?.user) {
-          // Get user profile data
           const { data, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -59,10 +56,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     checkUser();
     
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        // Get user profile data
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -115,7 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     try {
-      // Validate email with a simple regex
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         throw new Error('Please enter a valid email address');
