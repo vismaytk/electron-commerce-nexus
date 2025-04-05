@@ -1,21 +1,14 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-// Define return types for Supabase auth functions
-type AuthResponse = {
-  data: any;
-  error: Error | null;
-};
-
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<any>; // Updated return type
-  signup: (email: string, password: string, name: string) => Promise<any>; // Updated return type
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -31,7 +24,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error getting session:', error);
           throw error;
         }
         
@@ -43,7 +35,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .single();
             
           if (profileError) {
-            console.error('Error getting profile:', profileError);
             throw profileError;
           }
           
@@ -101,18 +92,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      console.log('Attempting login with:', email);
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
-        console.error('Login error:', error);
         throw error;
       }
       
       toast.success('Logged in successfully!');
-      return data;
     } catch (error: any) {
-      console.error('Login failed:', error);
       toast.error(`Login failed: ${error.message}`);
       throw error;
     } finally {
@@ -123,7 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     try {
-      console.log('Attempting signup with:', email);
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         throw new Error('Please enter a valid email address');
@@ -140,14 +126,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
-        console.error('Signup error:', error);
         throw error;
       }
       
       toast.success('Account created successfully! Please check your email to confirm your account.');
-      return data;
     } catch (error: any) {
-      console.error('Signup failed:', error);
       toast.error(`Signup failed: ${error.message}`);
       throw error;
     } finally {
@@ -161,14 +144,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('Logout error:', error);
         throw error;
       }
       
       setUser(null);
       toast.success('Logged out successfully!');
     } catch (error: any) {
-      console.error('Logout failed:', error);
       toast.error(`Logout failed: ${error.message}`);
     } finally {
       setIsLoading(false);

@@ -118,14 +118,7 @@ const CheckoutPage = () => {
         user_id: user.id,
         order_details: {
           shipping_address: shippingAddress,
-          items: cartItems.map(item => ({
-            product: {
-              id: item.product.id,
-              name: item.product.name,
-              price: item.product.price
-            },
-            quantity: item.quantity
-          }))
+          items: cartItems
         }
       });
       
