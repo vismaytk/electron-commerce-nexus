@@ -21,6 +21,8 @@ serve(async (req) => {
       throw new Error("Missing Razorpay secret key");
     }
 
+    console.log("Razorpay secret key found for verification");
+
     // Create Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -39,6 +41,8 @@ serve(async (req) => {
       );
     }
 
+    console.log("Verifying payment for order:", razorpay_order_id);
+
     // Verify signature
     const generatedSignature = createHmac("sha256", RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -47,6 +51,7 @@ serve(async (req) => {
     const isAuthentic = generatedSignature === razorpay_signature;
 
     if (!isAuthentic) {
+      console.error("Payment verification failed - signature mismatch");
       // Update order status to failed
       await supabase
         .from("orders")
@@ -61,6 +66,8 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log("Payment signature verified successfully");
 
     // Update order status to completed
     const { error: updateError } = await supabase
@@ -77,8 +84,11 @@ serve(async (req) => {
       .eq("id", db_order_id);
 
     if (updateError) {
+      console.error("Database error updating order:", updateError);
       throw new Error(`Database error: ${updateError.message}`);
     }
+
+    console.log("Order marked as completed successfully");
 
     return new Response(
       JSON.stringify({ success: true, message: "Payment verified successfully" }),
@@ -88,6 +98,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    console.error("Function error:", error.message);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

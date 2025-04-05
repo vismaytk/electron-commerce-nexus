@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, Search, X, ShoppingCart, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,14 +26,59 @@ const Header = () => {
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const { cartCount } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  
+  // Set search query from URL parameters when the page loads or URL changes
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get('search');
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [location.search]);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setShowResults(false);
     }
+  };
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    // Show/hide search results based on query length
+    if (query.length >= 2) {
+      // This would ideally connect to your backend/API
+      // For now, we'll simulate with a timeout
+      setTimeout(() => {
+        // Simulate search results (in a real app, this would be an API call)
+        const simulatedResults = [
+          { id: '1', name: 'Ultra HD Smart TV 55"', category: 'tvs' },
+          { id: '2', name: 'Pro Wireless Earbuds', category: 'audio' },
+          { id: '3', name: 'Smart Home Hub', category: 'smart-home' },
+        ].filter(item => 
+          item.name.toLowerCase().includes(query.toLowerCase()) || 
+          item.category.toLowerCase().includes(query.toLowerCase())
+        );
+        
+        setSearchResults(simulatedResults);
+        setShowResults(true);
+      }, 300);
+    } else {
+      setShowResults(false);
+    }
+  };
+  
+  const handleResultClick = (productId: string) => {
+    navigate(`/products/${productId}`);
+    setShowResults(false);
   };
   
   const handleLogout = () => {
@@ -45,7 +91,7 @@ const Header = () => {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="font-display font-bold text-2xl text-navy dark:text-white">
-          ElectroNexus
+          GADA ELECTRONICS
         </Link>
         
         {/* Desktop Navigation */}
@@ -65,21 +111,50 @@ const Header = () => {
         
         {/* Desktop Search */}
         <div className="hidden md:flex items-center space-x-4">
-          <form onSubmit={handleSearch} className="relative w-64">
-            <Input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-8"
-            />
-            <button 
-              type="submit" 
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              <Search className="h-4 w-4" />
-            </button>
-          </form>
+          <div className="relative w-64">
+            <form onSubmit={handleSearch}>
+              <Input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                className="pr-8"
+                onBlur={() => {
+                  // Delay hiding results to allow for clicks
+                  setTimeout(() => setShowResults(false), 200);
+                }}
+                onFocus={() => {
+                  if (searchQuery.length >= 2) {
+                    setShowResults(true);
+                  }
+                }}
+              />
+              <button 
+                type="submit" 
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <Search className="h-4 w-4" />
+              </button>
+            </form>
+            
+            {/* Search Results Dropdown */}
+            {showResults && searchResults.length > 0 && (
+              <div className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700">
+                {searchResults.map(result => (
+                  <div
+                    key={result.id}
+                    className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={() => handleResultClick(result.id)}
+                  >
+                    <p className="font-medium">{result.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      in {result.category.replace('-', ' ')}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           
           <ThemeToggle />
           
@@ -160,7 +235,7 @@ const Header = () => {
                 <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between border-b pb-4">
                     <Link to="/" className="font-display font-bold text-xl">
-                      ElectroNexus
+                      GADA ELECTRONICS
                     </Link>
                     <SheetClose asChild>
                       <Button variant="ghost" size="icon">
@@ -171,21 +246,42 @@ const Header = () => {
                   </div>
                   
                   <div className="py-4">
-                    <form onSubmit={handleSearch} className="relative mb-6">
-                      <Input
-                        type="text"
-                        placeholder="Search products..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pr-8"
-                      />
-                      <button 
-                        type="submit" 
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                      >
-                        <Search className="h-4 w-4" />
-                      </button>
-                    </form>
+                    <div className="relative mb-6">
+                      <form onSubmit={handleSearch}>
+                        <Input
+                          type="text"
+                          placeholder="Search products..."
+                          value={searchQuery}
+                          onChange={handleSearchChange}
+                          className="pr-8"
+                        />
+                        <button 
+                          type="submit" 
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        >
+                          <Search className="h-4 w-4" />
+                        </button>
+                      </form>
+                      
+                      {/* Mobile Search Results */}
+                      {showResults && searchResults.length > 0 && (
+                        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700">
+                          {searchResults.map(result => (
+                            <SheetClose asChild key={result.id}>
+                              <div
+                                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                onClick={() => handleResultClick(result.id)}
+                              >
+                                <p className="font-medium">{result.name}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  in {result.category.replace('-', ' ')}
+                                </p>
+                              </div>
+                            </SheetClose>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     
                     <nav className="space-y-4">
                       <SheetClose asChild>

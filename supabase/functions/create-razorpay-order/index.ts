@@ -21,6 +21,8 @@ serve(async (req) => {
       throw new Error("Missing Razorpay credentials");
     }
 
+    console.log("Razorpay credentials found");
+
     // Create Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -39,6 +41,8 @@ serve(async (req) => {
       );
     }
 
+    console.log("Creating Razorpay order with amount:", amount);
+
     // Create Razorpay order
     const auth = btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`);
     const response = await fetch("https://api.razorpay.com/v1/orders", {
@@ -48,7 +52,7 @@ serve(async (req) => {
         Authorization: `Basic ${auth}`,
       },
       body: JSON.stringify({
-        amount: amount * 100, // Convert to paise (Razorpay uses smallest currency unit)
+        amount: Math.round(amount * 100), // Convert to paise and ensure it's an integer
         currency,
         receipt: `order_${Date.now()}`,
       }),
@@ -56,10 +60,12 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error("Razorpay API error:", errorData);
       throw new Error(`Razorpay error: ${JSON.stringify(errorData)}`);
     }
 
     const razorpayOrder = await response.json();
+    console.log("Razorpay order created:", razorpayOrder.id);
 
     // Save order to database
     const { data: orderData, error: orderError } = await supabase
@@ -75,6 +81,7 @@ serve(async (req) => {
       .single();
 
     if (orderError) {
+      console.error("Database error:", orderError);
       throw new Error(`Database error: ${orderError.message}`);
     }
 
@@ -91,6 +98,7 @@ serve(async (req) => {
       .insert(orderItems);
 
     if (itemsError) {
+      console.error("Database error for order items:", itemsError);
       throw new Error(`Database error: ${itemsError.message}`);
     }
 
@@ -108,6 +116,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    console.error("Function error:", error.message);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

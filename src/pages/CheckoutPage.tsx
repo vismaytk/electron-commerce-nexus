@@ -31,7 +31,7 @@ const CheckoutPage = () => {
   
   // Shipping address state
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
-    name: '',
+    name: user?.name || '',
     addressLine1: '',
     addressLine2: '',
     city: '',
@@ -91,8 +91,11 @@ const CheckoutPage = () => {
     setIsProcessing(true);
     
     try {
+      console.log("Initiating payment process");
+      
       // Load Razorpay script
       if (!window.Razorpay) {
+        console.log("Loading Razorpay script");
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
           script.src = 'https://checkout.razorpay.com/v1/checkout.js';
@@ -100,9 +103,11 @@ const CheckoutPage = () => {
           script.onerror = reject;
           document.body.appendChild(script);
         });
+        console.log("Razorpay script loaded");
       }
       
       // Create order on server
+      console.log("Creating order with total:", total);
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
         body: {
           amount: total,
@@ -116,12 +121,16 @@ const CheckoutPage = () => {
       });
       
       if (error) {
+        console.error("Error creating order:", error);
         throw new Error(error.message);
       }
       
       if (!data || data.error) {
+        console.error("Error in response:", data?.error);
         throw new Error(data?.error || 'Failed to create order');
       }
+      
+      console.log("Order created successfully:", data);
       
       // Initialize Razorpay
       const razorpay = new window.Razorpay({
@@ -129,8 +138,8 @@ const CheckoutPage = () => {
         amount: data.amount,
         currency: data.currency,
         order_id: data.order_id,
-        name: 'ElectroNexus',
-        description: 'Purchase from ElectroNexus',
+        name: 'GADA ELECTRONICS',
+        description: 'Purchase from GADA ELECTRONICS',
         image: '/favicon.ico',
         prefill: {
           name: shippingAddress.name,
@@ -142,6 +151,7 @@ const CheckoutPage = () => {
         },
         handler: async function(response: any) {
           try {
+            console.log("Payment successful, verifying payment");
             // Verify payment
             const verifyResponse = await supabase.functions.invoke('verify-razorpay-payment', {
               body: {
@@ -153,8 +163,11 @@ const CheckoutPage = () => {
             });
             
             if (verifyResponse.error || (verifyResponse.data && verifyResponse.data.error)) {
+              console.error("Verification error:", verifyResponse.error || verifyResponse.data?.error);
               throw new Error(verifyResponse.error?.message || verifyResponse.data?.error || 'Payment verification failed');
             }
+            
+            console.log("Payment verified successfully");
             
             // Clear cart and redirect to success page
             clearCart();
@@ -167,20 +180,24 @@ const CheckoutPage = () => {
             
             toast.success('Payment successful! Your order has been placed.');
           } catch (error: any) {
+            console.error("Payment verification failed:", error);
             toast.error(`Payment verification failed: ${error.message}`);
             setIsProcessing(false);
           }
         },
         modal: {
           ondismiss: function() {
+            console.log("Payment modal dismissed");
             toast.info('Payment cancelled');
             setIsProcessing(false);
           }
         }
       });
       
+      console.log("Opening Razorpay payment modal");
       razorpay.open();
     } catch (error: any) {
+      console.error("Payment process error:", error);
       toast.error(`Payment failed: ${error.message}`);
       setIsProcessing(false);
     }
@@ -317,7 +334,7 @@ const CheckoutPage = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 sticky top-24">
             <h2 className="text-lg font-medium mb-4">Order Summary</h2>
             
-            <div className="space-y-4 mb-4">
+            <div className="space-y-4 mb-4 max-h-64 overflow-y-auto">
               {cartItems.map(({ product, quantity }) => (
                 <div key={product.id} className="flex justify-between">
                   <div className="flex items-center">
@@ -365,7 +382,7 @@ const CheckoutPage = () => {
             <Button 
               onClick={handlePayment}
               disabled={isProcessing}
-              className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark"
+              className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark text-white"
             >
               {isProcessing ? 'Processing...' : 'Pay Now'}
             </Button>
