@@ -18,20 +18,60 @@ serve(async (req) => {
     const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
 
     if (!RAZORPAY_KEY_SECRET) {
-      throw new Error("Missing Razorpay secret key");
+      console.error("Missing Razorpay secret key");
+      return new Response(
+        JSON.stringify({ error: "Missing Razorpay secret key" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     console.log("Razorpay secret key found for verification");
 
     // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing Supabase credentials");
+      return new Response(
+        JSON.stringify({ error: "Missing Supabase credentials" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get request body
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, db_order_id } = await req.json();
+    let reqBody;
+    try {
+      reqBody = await req.json();
+    } catch (e) {
+      console.error("Failed to parse request body:", e);
+      return new Response(
+        JSON.stringify({ error: "Invalid request body" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, db_order_id } = reqBody;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !db_order_id) {
+      console.error("Missing required fields:", { 
+        hasOrderId: !!razorpay_order_id, 
+        hasPaymentId: !!razorpay_payment_id,
+        hasSignature: !!razorpay_signature,
+        hasDbOrderId: !!db_order_id
+      });
+      
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         {
@@ -52,6 +92,9 @@ serve(async (req) => {
 
     if (!isAuthentic) {
       console.error("Payment verification failed - signature mismatch");
+      console.error("Generated signature:", generatedSignature);
+      console.error("Received signature:", razorpay_signature);
+      
       // Update order status to failed
       await supabase
         .from("orders")
@@ -85,7 +128,13 @@ serve(async (req) => {
 
     if (updateError) {
       console.error("Database error updating order:", updateError);
-      throw new Error(`Database error: ${updateError.message}`);
+      return new Response(
+        JSON.stringify({ error: `Database error: ${updateError.message}` }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     console.log("Order marked as completed successfully");
@@ -98,9 +147,9 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Function error:", error.message);
+    console.error("Function error:", error.message, error.stack);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message, stack: error.stack }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

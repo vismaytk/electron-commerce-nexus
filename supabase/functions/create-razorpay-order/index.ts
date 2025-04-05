@@ -17,23 +17,65 @@ serve(async (req) => {
     const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
     const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
 
+    // Validate Razorpay credentials
     if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-      throw new Error("Missing Razorpay credentials");
+      console.error("Missing Razorpay credentials");
+      return new Response(
+        JSON.stringify({ error: "Missing Razorpay credentials" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     console.log("Razorpay credentials found");
 
     // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing Supabase credentials");
+      return new Response(
+        JSON.stringify({ error: "Missing Supabase credentials" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get request body
-    const { amount, currency = "INR", user_id, order_details } = await req.json();
+    let reqBody;
+    try {
+      reqBody = await req.json();
+    } catch (e) {
+      console.error("Failed to parse request body:", e);
+      return new Response(
+        JSON.stringify({ error: "Invalid request body" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    
+    const { amount, currency = "INR", user_id, order_details } = reqBody;
 
     if (!amount || !user_id || !order_details) {
+      console.error("Missing required fields:", { amount, user_id, hasOrderDetails: !!order_details });
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ 
+          error: "Missing required fields", 
+          details: { 
+            hasAmount: !!amount, 
+            hasUserId: !!user_id, 
+            hasOrderDetails: !!order_details 
+          } 
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -42,10 +84,11 @@ serve(async (req) => {
     }
 
     console.log("Creating Razorpay order with amount:", amount);
+    console.log("Order details:", JSON.stringify(order_details));
 
     // Create Razorpay order
     const auth = btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`);
-    const response = await fetch("https://api.razorpay.com/v1/orders", {
+    const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -61,14 +104,28 @@ serve(async (req) => {
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
+    // Handle Razorpay API errors
+    if (!razorpayResponse.ok) {
+      const errorData = await razorpayResponse.json();
       console.error("Razorpay API error:", errorData);
-      throw new Error(`Razorpay error: ${JSON.stringify(errorData)}`);
+      return new Response(
+        JSON.stringify({ error: "Razorpay API error", details: errorData }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    const razorpayOrder = await response.json();
+    const razorpayOrder = await razorpayResponse.json();
     console.log("Razorpay order created:", razorpayOrder.id);
+
+    // Simplify order items to avoid any complex data issues
+    const simplifiedItems = order_details.items.map((item) => ({
+      product_id: item.product.id,
+      quantity: item.quantity,
+      price_at_purchase: item.product.price,
+    }));
 
     // Save order to database
     const { data: orderData, error: orderError } = await supabase
@@ -85,15 +142,21 @@ serve(async (req) => {
 
     if (orderError) {
       console.error("Database error:", orderError);
-      throw new Error(`Database error: ${orderError.message}`);
+      return new Response(
+        JSON.stringify({ error: `Database error: ${orderError.message}` }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     // Add order items
-    const orderItems = order_details.items.map((item: any) => ({
+    const orderItems = simplifiedItems.map((item) => ({
       order_id: orderData.id,
-      product_id: item.product.id,
+      product_id: item.product_id,
       quantity: item.quantity,
-      price_at_purchase: item.product.price,
+      price_at_purchase: item.price_at_purchase,
     }));
 
     const { error: itemsError } = await supabase
@@ -102,7 +165,13 @@ serve(async (req) => {
 
     if (itemsError) {
       console.error("Database error for order items:", itemsError);
-      throw new Error(`Database error: ${itemsError.message}`);
+      return new Response(
+        JSON.stringify({ error: `Database error: ${itemsError.message}` }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     return new Response(
@@ -119,9 +188,9 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Function error:", error.message);
+    console.error("Function error:", error.message, error.stack);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message, stack: error.stack }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

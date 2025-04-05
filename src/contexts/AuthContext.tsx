@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
 import { toast } from 'sonner';
@@ -7,8 +8,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
+  signup: (email: string, password: string, name: string) => Promise<any>;
   logout: () => Promise<void>;
 }
 
@@ -99,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       toast.success('Logged in successfully!');
+      return data;
     } catch (error: any) {
       toast.error(`Login failed: ${error.message}`);
       throw error;
@@ -130,6 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       toast.success('Account created successfully! Please check your email to confirm your account.');
+      return data;
     } catch (error: any) {
       toast.error(`Signup failed: ${error.message}`);
       throw error;
