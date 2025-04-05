@@ -22,6 +22,7 @@ const LoginPage = () => {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
   
   // Register form state
   const [registerName, setRegisterName] = useState('');
@@ -29,6 +30,7 @@ const LoginPage = () => {
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
   const [registerError, setRegisterError] = useState('');
+  const [isRegisterSubmitting, setIsRegisterSubmitting] = useState(false);
   
   // Redirect if already authenticated
   useEffect(() => {
@@ -47,10 +49,13 @@ const LoginPage = () => {
     }
     
     try {
+      setIsLoginSubmitting(true);
       await login(loginEmail, loginPassword);
       navigate(from, { replace: true });
     } catch (error: any) {
       setLoginError(error.message || 'Login failed');
+    } finally {
+      setIsLoginSubmitting(false);
     }
   };
   
@@ -74,12 +79,15 @@ const LoginPage = () => {
     }
     
     try {
+      setIsRegisterSubmitting(true);
       await signup(registerEmail, registerPassword, registerName);
       // In real Supabase Auth, the user would need to verify their email
       // so we don't automatically navigate away
     } catch (error: any) {
       console.error('Registration error:', error);
       setRegisterError(error.message || 'Registration failed');
+    } finally {
+      setIsRegisterSubmitting(false);
     }
   };
   
@@ -87,7 +95,7 @@ const LoginPage = () => {
     <div className="container-custom py-12">
       <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
         <div className="px-6 py-8">
-          <h1 className="text-2xl font-display font-bold text-center mb-6">Welcome to ElectroNexus</h1>
+          <h1 className="text-2xl font-display font-bold text-center mb-6">Welcome to GADA ELECTRONICS</h1>
           
           <Tabs defaultValue="login">
             <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -140,9 +148,9 @@ const LoginPage = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark transition-colors"
-                    disabled={isLoading}
+                    disabled={isLoginSubmitting || isLoading}
                   >
-                    {isLoading ? 'Logging in...' : 'Login'}
+                    {isLoginSubmitting ? 'Logging in...' : 'Login'}
                   </Button>
                 </div>
               </form>
@@ -179,7 +187,7 @@ const LoginPage = () => {
                     <Label htmlFor="register-email">Email</Label>
                     <Input
                       id="register-email"
-                      type="text" 
+                      type="email"
                       placeholder="Enter your email"
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
@@ -221,9 +229,9 @@ const LoginPage = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark transition-colors"
-                    disabled={isLoading}
+                    disabled={isRegisterSubmitting || isLoading}
                   >
-                    {isLoading ? 'Creating Account...' : 'Create Account'}
+                    {isRegisterSubmitting ? 'Creating Account...' : 'Create Account'}
                   </Button>
                 </div>
               </form>
