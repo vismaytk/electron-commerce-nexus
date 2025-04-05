@@ -55,6 +55,9 @@ serve(async (req) => {
         amount: Math.round(amount * 100), // Convert to paise and ensure it's an integer
         currency,
         receipt: `order_${Date.now()}`,
+        notes: {
+          company_name: "GADA ELECTRONICS"
+        }
       }),
     });
 

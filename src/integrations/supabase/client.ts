@@ -14,7 +14,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
   },
   global: {
-    fetch: (...args) => fetch(...args),
+    // Fix the TS error by correctly defining the fetch options
     headers: { 'x-app-version': '1.0.0' },
   },
 });

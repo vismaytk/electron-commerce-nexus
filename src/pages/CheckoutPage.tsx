@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { ShippingAddress } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, invokeFunction } from '@/integrations/supabase/client';
 
 declare global {
   interface Window {
@@ -72,6 +72,16 @@ const CheckoutPage = () => {
     return true;
   };
   
+  // Load Razorpay script
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = resolve;
+      document.body.appendChild(script);
+    });
+  };
+  
   const handlePayment = async () => {
     if (!isAuthenticated || !user) {
       toast.error('Please login to continue');
@@ -93,36 +103,28 @@ const CheckoutPage = () => {
     try {
       console.log("Initiating payment process");
       
-      // Load Razorpay script
+      // Load Razorpay script if not already loaded
       if (!window.Razorpay) {
         console.log("Loading Razorpay script");
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.body.appendChild(script);
-        });
+        await loadRazorpayScript();
         console.log("Razorpay script loaded");
       }
       
       // Create order on server
       console.log("Creating order with total:", total);
-      const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
-        body: {
-          amount: total,
-          currency: 'INR',
-          user_id: user.id,
-          order_details: {
-            shipping_address: shippingAddress,
-            items: cartItems
-          }
+      const { data, error } = await invokeFunction('create-razorpay-order', {
+        amount: total,
+        currency: 'INR',
+        user_id: user.id,
+        order_details: {
+          shipping_address: shippingAddress,
+          items: cartItems
         }
       });
       
       if (error) {
         console.error("Error creating order:", error);
-        throw new Error(error.message);
+        throw new Error(error.message || "Failed to create order");
       }
       
       if (!data || data.error) {
@@ -133,13 +135,13 @@ const CheckoutPage = () => {
       console.log("Order created successfully:", data);
       
       // Initialize Razorpay
-      const razorpay = new window.Razorpay({
+      const options = {
         key: data.key,
         amount: data.amount,
         currency: data.currency,
-        order_id: data.order_id,
         name: 'GADA ELECTRONICS',
         description: 'Purchase from GADA ELECTRONICS',
+        order_id: data.order_id,
         image: '/favicon.ico',
         prefill: {
           name: shippingAddress.name,
@@ -153,13 +155,11 @@ const CheckoutPage = () => {
           try {
             console.log("Payment successful, verifying payment");
             // Verify payment
-            const verifyResponse = await supabase.functions.invoke('verify-razorpay-payment', {
-              body: {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                db_order_id: data.db_order_id
-              }
+            const verifyResponse = await invokeFunction('verify-razorpay-payment', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              db_order_id: data.db_order_id
             });
             
             if (verifyResponse.error || (verifyResponse.data && verifyResponse.data.error)) {
@@ -185,13 +185,14 @@ const CheckoutPage = () => {
             setIsProcessing(false);
           }
         },
-        modal: {
-          ondismiss: function() {
-            console.log("Payment modal dismissed");
-            toast.info('Payment cancelled');
-            setIsProcessing(false);
-          }
-        }
+      };
+      
+      const razorpay = new window.Razorpay(options);
+      
+      razorpay.on('payment.failed', function(response: any) {
+        console.error("Payment failed:", response.error);
+        toast.error(`Payment failed: ${response.error.description}`);
+        setIsProcessing(false);
       });
       
       console.log("Opening Razorpay payment modal");
@@ -204,7 +205,7 @@ const CheckoutPage = () => {
   };
   
   // Redirect if not authenticated
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isAuthenticated && !isProcessing) {
       toast.error('Please login to checkout', {
         description: "You need to be logged in to checkout",
@@ -228,7 +229,7 @@ const CheckoutPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Shipping Information */}
         <div className="lg:col-span-2">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-medium mb-4">Shipping Information</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -331,14 +332,14 @@ const CheckoutPage = () => {
         
         {/* Order Summary */}
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 sticky top-24">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 sticky top-24 border border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-medium mb-4">Order Summary</h2>
             
             <div className="space-y-4 mb-4 max-h-64 overflow-y-auto">
               {cartItems.map(({ product, quantity }) => (
                 <div key={product.id} className="flex justify-between">
                   <div className="flex items-center">
-                    <div className="w-12 h-12 rounded overflow-hidden mr-2">
+                    <div className="w-12 h-12 rounded overflow-hidden mr-2 bg-gray-100 dark:bg-gray-700">
                       <img 
                         src={product.images[0]} 
                         alt={product.name} 
@@ -359,15 +360,15 @@ const CheckoutPage = () => {
             
             <div className="space-y-2 mb-4">
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                <span className="text-gray-600 dark:text-gray-300">Subtotal</span>
                 <span>${subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Shipping</span>
+                <span className="text-gray-600 dark:text-gray-300">Shipping</span>
                 <span>{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Estimated Tax</span>
+                <span className="text-gray-600 dark:text-gray-300">Estimated Tax</span>
                 <span>${tax.toFixed(2)}</span>
               </div>
             </div>
