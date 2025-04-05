@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,8 +50,9 @@ const LoginPage = () => {
     try {
       setIsLoginSubmitting(true);
       await login(loginEmail, loginPassword);
-      navigate(from, { replace: true });
+      // Navigate is handled by the auth state change in useEffect
     } catch (error: any) {
+      console.error('Login error:', error);
       setLoginError(error.message || 'Login failed');
     } finally {
       setIsLoginSubmitting(false);
@@ -148,7 +148,7 @@ const LoginPage = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark transition-colors"
-                    disabled={isLoginSubmitting || isLoading}
+                    disabled={isLoginSubmitting}
                   >
                     {isLoginSubmitting ? 'Logging in...' : 'Login'}
                   </Button>
@@ -229,7 +229,7 @@ const LoginPage = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark transition-colors"
-                    disabled={isRegisterSubmitting || isLoading}
+                    disabled={isRegisterSubmitting}
                   >
                     {isRegisterSubmitting ? 'Creating Account...' : 'Create Account'}
                   </Button>
