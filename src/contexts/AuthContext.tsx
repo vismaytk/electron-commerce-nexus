@@ -4,12 +4,18 @@ import { User } from '@/types';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
+// Define return types for Supabase auth functions
+type AuthResponse = {
+  data: any;
+  error: Error | null;
+};
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<any>; // Updated return type
+  signup: (email: string, password: string, name: string) => Promise<any>; // Updated return type
   logout: () => Promise<void>;
 }
 
