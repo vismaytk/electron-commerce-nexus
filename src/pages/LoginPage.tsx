@@ -34,15 +34,16 @@ const LoginPage = () => {
   
   // Redirect if already authenticated
   useEffect(() => {
-    console.log('Auth state changed in LoginPage:', isAuthenticated, isLoading, from);
+    console.log('LoginPage: Auth state changed:', { isAuthenticated, isLoading, from });
     if (isAuthenticated && !isLoading) {
-      console.log('Redirecting to:', from);
+      console.log('LoginPage: Redirecting to:', from);
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, from, isLoading]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('LoginPage: Login attempt started');
     setLoginError('');
     
     if (!loginEmail || !loginPassword) {
@@ -52,12 +53,23 @@ const LoginPage = () => {
     
     setIsLoginSubmitting(true);
     try {
+      console.log('LoginPage: Calling login function');
       await login(loginEmail, loginPassword);
-      // After successful login, manually navigate in case the useEffect doesn't trigger
+      
+      console.log('LoginPage: Login function returned, checking auth state');
+      // After successful login, manually navigate in case the useEffect doesn't trigger immediately
       if (isAuthenticated) {
+        console.log('LoginPage: Already authenticated, navigating immediately');
         navigate(from, { replace: true });
+      } else {
+        console.log('LoginPage: Not yet authenticated, navigating with delay');
+        // Give a small timeout to allow auth state to propagate
+        setTimeout(() => {
+          navigate(from, { replace: true });
+        }, 500);
       }
     } catch (error: any) {
+      console.error('LoginPage: Login error:', error);
       setLoginError(error.message || 'Login failed');
     } finally {
       setIsLoginSubmitting(false);
@@ -66,6 +78,7 @@ const LoginPage = () => {
   
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('LoginPage: Register attempt started');
     setRegisterError('');
     
     if (!registerName || !registerEmail || !registerPassword || !registerConfirmPassword) {
@@ -85,19 +98,23 @@ const LoginPage = () => {
     
     setIsRegisterSubmitting(true);
     try {
-      const result = await signup(registerEmail, registerPassword, registerName);
+      console.log('LoginPage: Calling signup function');
+      await signup(registerEmail, registerPassword, registerName);
       
-      // If signup was successful, manually navigate
-      setTimeout(() => {
-        if (isAuthenticated) {
+      console.log('LoginPage: Signup function returned, checking auth state');
+      // After successful registration, check auth state
+      if (isAuthenticated) {
+        console.log('LoginPage: Already authenticated after signup, navigating immediately');
+        navigate(from, { replace: true });
+      } else {
+        console.log('LoginPage: Not yet authenticated after signup, forcing navigation with delay');
+        // Force navigation even if auth state hasn't updated yet
+        setTimeout(() => {
           navigate(from, { replace: true });
-        } else {
-          // If user is still not authenticated after a brief delay, try direct navigation
-          navigate(from, { replace: true });
-        }
-      }, 500);
+        }, 1000);
+      }
     } catch (error: any) {
-      console.error('Registration error:', error);
+      console.error('LoginPage: Registration error:', error);
       setRegisterError(error.message || 'Registration failed');
     } finally {
       setIsRegisterSubmitting(false);
