@@ -57,10 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     checkUser();
     
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session);
-      
       if (session?.user) {
         const { data, error } = await supabase
           .from('profiles')
@@ -102,24 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
       
-      // Explicitly update user state here for immediate state change
-      if (data.user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-          
-        if (profileData) {
-          setUser({
-            id: data.user.id,
-            email: data.user.email || '',
-            name: profileData.name || '',
-            isAdmin: profileData.is_admin || false,
-          });
-        }
-      }
-      
       toast.success('Logged in successfully!');
       return data;
     } catch (error: any) {
@@ -138,7 +117,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Please enter a valid email address');
       }
       
-      // Sign up the user
       const { data, error } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -151,17 +129,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         throw error;
-      }
-      
-      // Immediately try to log in with the new credentials
-      // This helps in development when email confirmation is off
-      if (data && data.user) {
-        try {
-          await login(email, password);
-        } catch (loginError) {
-          console.log('Auto-login after signup failed:', loginError);
-          // We don't need to throw this error as signup was successful
-        }
       }
       
       toast.success('Account created successfully! Please check your email to confirm your account.');
