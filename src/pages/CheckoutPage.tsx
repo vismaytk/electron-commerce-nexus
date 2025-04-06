@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { ShippingAddress } from '@/types';
 import { supabase, invokeFunction } from '@/integrations/supabase/client';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { AlertTriangle } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -258,7 +258,7 @@ const CheckoutPage = () => {
       
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <ExclamationTriangleIcon className="h-4 w-4" />
+          <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Payment Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
