@@ -34,7 +34,9 @@ const LoginPage = () => {
   
   // Redirect if already authenticated
   useEffect(() => {
+    console.log('Auth state changed in LoginPage:', isAuthenticated, isLoading, from);
     if (isAuthenticated && !isLoading) {
+      console.log('Redirecting to:', from);
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, from, isLoading]);
@@ -51,9 +53,13 @@ const LoginPage = () => {
     setIsLoginSubmitting(true);
     try {
       await login(loginEmail, loginPassword);
-      // Navigation should happen automatically in the useEffect when isAuthenticated changes
+      // After successful login, manually navigate in case the useEffect doesn't trigger
+      if (isAuthenticated) {
+        navigate(from, { replace: true });
+      }
     } catch (error: any) {
       setLoginError(error.message || 'Login failed');
+    } finally {
       setIsLoginSubmitting(false);
     }
   };
@@ -81,14 +87,15 @@ const LoginPage = () => {
     try {
       const result = await signup(registerEmail, registerPassword, registerName);
       
-      // Check if signup was successful and user is now authenticated
-      if (result && result.user) {
-        // Navigation will happen in the useEffect when isAuthenticated becomes true
-        // If useEffect doesn't trigger, we manually navigate
-        if (!isAuthenticated) {
+      // If signup was successful, manually navigate
+      setTimeout(() => {
+        if (isAuthenticated) {
+          navigate(from, { replace: true });
+        } else {
+          // If user is still not authenticated after a brief delay, try direct navigation
           navigate(from, { replace: true });
         }
-      }
+      }, 500);
     } catch (error: any) {
       console.error('Registration error:', error);
       setRegisterError(error.message || 'Registration failed');
