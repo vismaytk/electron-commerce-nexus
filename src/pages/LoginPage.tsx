@@ -51,7 +51,7 @@ const LoginPage = () => {
     setIsLoginSubmitting(true);
     try {
       await login(loginEmail, loginPassword);
-      // Navigation will happen in the useEffect when isAuthenticated becomes true
+      // Navigation should happen automatically in the useEffect when isAuthenticated changes
     } catch (error: any) {
       setLoginError(error.message || 'Login failed');
       setIsLoginSubmitting(false);
@@ -79,9 +79,16 @@ const LoginPage = () => {
     
     setIsRegisterSubmitting(true);
     try {
-      await signup(registerEmail, registerPassword, registerName);
-      // In real Supabase Auth, the user would need to verify their email
-      // so we don't automatically navigate away
+      const result = await signup(registerEmail, registerPassword, registerName);
+      
+      // Check if signup was successful and user is now authenticated
+      if (result && result.user) {
+        // Navigation will happen in the useEffect when isAuthenticated becomes true
+        // If useEffect doesn't trigger, we manually navigate
+        if (!isAuthenticated) {
+          navigate(from, { replace: true });
+        }
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
       setRegisterError(error.message || 'Registration failed');
