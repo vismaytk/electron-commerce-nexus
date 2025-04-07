@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
@@ -26,13 +25,11 @@ const CheckoutPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Calculate summary values
   const subtotal = cartTotal;
   const shipping = subtotal > 50 ? 0 : 10;
   const tax = subtotal * 0.08; // 8% tax rate
   const total = subtotal + shipping + tax;
   
-  // Shipping address state
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
     name: user?.name || '',
     addressLine1: '',
@@ -44,7 +41,6 @@ const CheckoutPage = () => {
     phone: '',
   });
   
-  // Handle shipping form changes
   const handleShippingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setShippingAddress(prev => ({
@@ -53,7 +49,6 @@ const CheckoutPage = () => {
     }));
   };
   
-  // Validate form
   const validateForm = () => {
     const requiredFields = [
       'name', 'addressLine1', 'city', 'state', 'postalCode', 'phone'
@@ -66,7 +61,6 @@ const CheckoutPage = () => {
       }
     }
     
-    // Validate phone number (basic validation)
     if (!/^\d{10}$/.test(shippingAddress.phone)) {
       toast.error('Please enter a valid 10-digit phone number');
       return false;
@@ -75,7 +69,6 @@ const CheckoutPage = () => {
     return true;
   };
   
-  // Load Razorpay script
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       const script = document.createElement('script');
@@ -107,14 +100,12 @@ const CheckoutPage = () => {
     try {
       console.log("Initiating payment process");
       
-      // Load Razorpay script if not already loaded
       if (!window.Razorpay) {
         console.log("Loading Razorpay script");
         await loadRazorpayScript();
         console.log("Razorpay script loaded");
       }
       
-      // Prepare simplified product data to avoid circular reference issues
       const simplifiedCartItems = cartItems.map(item => ({
         product: {
           id: item.product.id,
@@ -124,7 +115,6 @@ const CheckoutPage = () => {
         quantity: item.quantity
       }));
       
-      // Create order on server
       console.log("Creating order with total:", total);
       const { data, error } = await invokeFunction('create-razorpay-order', {
         amount: total,
@@ -156,7 +146,6 @@ const CheckoutPage = () => {
       
       console.log("Order created successfully:", data);
       
-      // Initialize Razorpay
       const options = {
         key: data.key,
         amount: data.amount,
@@ -176,7 +165,6 @@ const CheckoutPage = () => {
         handler: async function(response: any) {
           try {
             console.log("Payment successful, verifying payment");
-            // Verify payment
             const verifyResponse = await invokeFunction('verify-razorpay-payment', {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
@@ -196,7 +184,6 @@ const CheckoutPage = () => {
             
             console.log("Payment verified successfully");
             
-            // Clear cart and redirect to success page
             clearCart();
             navigate('/order-success', { 
               state: { 
@@ -234,7 +221,6 @@ const CheckoutPage = () => {
     }
   };
   
-  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated && !isProcessing) {
       toast.error('Please login to checkout', {
@@ -265,7 +251,6 @@ const CheckoutPage = () => {
       )}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Shipping Information */}
         <div className="lg:col-span-2">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-medium mb-4">Shipping Information</h2>
@@ -368,7 +353,6 @@ const CheckoutPage = () => {
           </div>
         </div>
         
-        {/* Order Summary */}
         <div className="lg:col-span-1">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 sticky top-24 border border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-medium mb-4">Order Summary</h2>
