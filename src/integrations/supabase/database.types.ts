@@ -15,25 +15,25 @@ export interface Database {
           id: string
           name: string | null
           email: string | null
-          is_admin: boolean
-          created_at: string
-          updated_at: string
+          is_admin: boolean | null
+          created_at: string | null
+          updated_at: string | null
         }
         Insert: {
           id: string
           name?: string | null
           email?: string | null
-          is_admin?: boolean
-          created_at?: string
-          updated_at?: string
+          is_admin?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Update: {
           id?: string
           name?: string | null
           email?: string | null
-          is_admin?: boolean
-          created_at?: string
-          updated_at?: string
+          is_admin?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
         }
       }
       products: {
@@ -50,11 +50,11 @@ export interface Database {
           rating: number
           review_count: number
           stock: number
-          is_featured: boolean
-          is_new: boolean
+          is_featured: boolean | null
+          is_new: boolean | null
           specifications: Json | null
-          created_at: string
-          updated_at: string
+          created_at: string | null
+          updated_at: string | null
         }
         Insert: {
           id?: string
@@ -66,14 +66,14 @@ export interface Database {
           description: string
           features?: Json | null
           images: string[]
-          rating: number
-          review_count: number
-          stock: number
-          is_featured?: boolean
-          is_new?: boolean
+          rating?: number
+          review_count?: number
+          stock?: number
+          is_featured?: boolean | null
+          is_new?: boolean | null
           specifications?: Json | null
-          created_at?: string
-          updated_at?: string
+          created_at?: string | null
+          updated_at?: string | null
         }
         Update: {
           id?: string
@@ -88,11 +88,11 @@ export interface Database {
           rating?: number
           review_count?: number
           stock?: number
-          is_featured?: boolean
-          is_new?: boolean
+          is_featured?: boolean | null
+          is_new?: boolean | null
           specifications?: Json | null
-          created_at?: string
-          updated_at?: string
+          created_at?: string | null
+          updated_at?: string | null
         }
       }
       orders: {
@@ -105,8 +105,8 @@ export interface Database {
           payment_details: Json | null
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
-          created_at: string
-          updated_at: string
+          created_at: string | null
+          updated_at: string | null
         }
         Insert: {
           id?: string
@@ -117,8 +117,8 @@ export interface Database {
           payment_details?: Json | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
-          created_at?: string
-          updated_at?: string
+          created_at?: string | null
+          updated_at?: string | null
         }
         Update: {
           id?: string
@@ -129,8 +129,8 @@ export interface Database {
           payment_details?: Json | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
-          created_at?: string
-          updated_at?: string
+          created_at?: string | null
+          updated_at?: string | null
         }
       }
       order_items: {
@@ -140,7 +140,7 @@ export interface Database {
           product_id: string
           quantity: number
           price_at_purchase: number
-          created_at: string
+          created_at: string | null
         }
         Insert: {
           id?: string
@@ -148,7 +148,7 @@ export interface Database {
           product_id: string
           quantity: number
           price_at_purchase: number
-          created_at?: string
+          created_at?: string | null
         }
         Update: {
           id?: string
@@ -156,7 +156,7 @@ export interface Database {
           product_id?: string
           quantity?: number
           price_at_purchase?: number
-          created_at?: string
+          created_at?: string | null
         }
       }
     }
