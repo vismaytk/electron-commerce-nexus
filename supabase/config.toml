@@ -5,5 +5,5 @@ project_id = "sxsbinrwflkokyycbvsl"
 [functions.create-razorpay-order]
 verify_jwt = true
 
-[functions.verify-razorpay-payment]
+[functions.verify-razorpay-payment] 
 verify_jwt = true

@@ -11,12 +11,6 @@ import ShippingForm from '@/components/checkout/ShippingForm';
 import OrderSummary from '@/components/checkout/OrderSummary';
 import { PaymentService } from '@/services/PaymentService';
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
 const CheckoutPage = () => {
   const { cartItems, cartTotal, clearCart } = useCart();
   const { user, isAuthenticated } = useAuth();
@@ -103,72 +97,26 @@ const CheckoutPage = () => {
     setError(null);
     
     try {
-      console.log("Initiating payment process");
-      
-      // Make sure Razorpay script is loaded
-      if (!window.Razorpay) {
-        console.log("Loading Razorpay script");
-        await PaymentService.loadRazorpayScript();
-        console.log("Razorpay script loaded");
-      }
-      
-      // Create order in Razorpay
-      console.log('Creating order with user:', user);
-      const orderData = await PaymentService.createRazorpayOrder(
+      // Using the simpler checkout method
+      await PaymentService.checkout(
         user,
         total,
         shippingAddress,
-        cartItems
-      );
-      
-      console.log("Order created successfully:", orderData);
-      
-      // Configure Razorpay options
-      const options = {
-        key: orderData.key,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: 'GADA ELECTRONICS',
-        description: 'Purchase from GADA ELECTRONICS',
-        order_id: orderData.order_id,
-        image: '/favicon.ico',
-        prefill: {
-          name: shippingAddress.name,
-          contact: shippingAddress.phone,
-          email: user.email
+        cartItems,
+        // Success handler
+        (response) => {
+          console.log("Payment successful:", response);
+          clearCart();
+          navigate('/order-success', { 
+            state: { 
+              orderId: response.orderId,
+              paymentId: response.razorpay_payment_id
+            } 
+          });
+          toast.success('Payment successful! Your order has been placed.');
+          setIsProcessing(false);
         },
-        theme: {
-          color: '#3B82F6'
-        },
-        handler: async function(response: any) {
-          try {
-            console.log("Payment successful, verifying payment:", response);
-            await PaymentService.verifyRazorpayPayment(response, orderData.db_order_id);
-            
-            console.log("Payment verified successfully");
-            
-            clearCart();
-            navigate('/order-success', { 
-              state: { 
-                orderId: orderData.db_order_id,
-                paymentId: response.razorpay_payment_id
-              } 
-            });
-            
-            toast.success('Payment successful! Your order has been placed.');
-          } catch (error: any) {
-            console.error("Payment verification failed:", error);
-            toast.error(`Payment verification failed: ${error.message}`);
-            setError(`Payment verification failed: ${error.message}`);
-            setIsProcessing(false);
-          }
-        },
-      };
-      
-      // Initialize Razorpay checkout
-      PaymentService.initializeRazorpayCheckout(
-        options,
-        () => {}, // Success is handled in the handler option
+        // Error handler
         (error) => {
           console.error("Payment failed:", error);
           toast.error(`Payment failed: ${error.description || error.message || 'Unknown error'}`);

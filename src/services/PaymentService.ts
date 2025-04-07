@@ -136,6 +136,11 @@ export const PaymentService = {
     console.log('Initializing Razorpay checkout with options:', options);
     
     try {
+      // Make sure Razorpay is loaded
+      if (!window.Razorpay) {
+        throw new Error('Razorpay script not loaded');
+      }
+      
       const razorpay = new window.Razorpay(options);
       
       razorpay.on('payment.failed', (response: any) => {
@@ -147,6 +152,79 @@ export const PaymentService = {
       console.log('Razorpay checkout opened');
     } catch (error) {
       console.error('Error initializing Razorpay checkout:', error);
+      onError(error);
+    }
+  },
+  
+  // Add a direct checkout method for simpler implementation
+  checkout: async (
+    user: User,
+    total: number,
+    shippingAddress: ShippingAddress,
+    cartItems: CartItem[],
+    onSuccess: (response: any) => void,
+    onError: (error: any) => void
+  ): Promise<void> => {
+    try {
+      console.log("Starting Razorpay checkout flow...");
+      
+      // 1. Load Razorpay script if not already loaded
+      await PaymentService.loadRazorpayScript();
+      console.log("Razorpay script is loaded");
+      
+      // 2. Create order
+      const orderData = await PaymentService.createRazorpayOrder(
+        user,
+        total,
+        shippingAddress,
+        cartItems
+      );
+      
+      console.log("Order created successfully:", orderData);
+      
+      // 3. Configure Razorpay options
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'GADA ELECTRONICS',
+        description: 'Purchase from GADA ELECTRONICS',
+        order_id: orderData.order_id,
+        image: '/favicon.ico',
+        prefill: {
+          name: shippingAddress.name,
+          contact: shippingAddress.phone,
+          email: user.email
+        },
+        theme: {
+          color: '#3B82F6'
+        },
+        handler: async function(response: any) {
+          try {
+            console.log("Payment successful, verifying payment:", response);
+            await PaymentService.verifyRazorpayPayment(response, orderData.db_order_id);
+            
+            console.log("Payment verified successfully");
+            onSuccess({
+              orderId: orderData.db_order_id,
+              paymentId: response.razorpay_payment_id,
+              ...response
+            });
+          } catch (error: any) {
+            console.error("Payment verification failed:", error);
+            onError(error);
+          }
+        },
+      };
+      
+      // 4. Initialize Razorpay checkout
+      PaymentService.initializeRazorpayCheckout(
+        options,
+        onSuccess,
+        onError
+      );
+    } catch (error) {
+      console.error("Payment process error:", error);
       onError(error);
     }
   }
