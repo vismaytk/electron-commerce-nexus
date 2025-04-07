@@ -68,7 +68,22 @@ const CheckoutPage = () => {
     return true;
   };
   
+  // Load Razorpay script when component mounts
+  useEffect(() => {
+    const loadRazorpayScript = async () => {
+      try {
+        await PaymentService.loadRazorpayScript();
+      } catch (error) {
+        console.error('Failed to load Razorpay script:', error);
+      }
+    };
+    
+    loadRazorpayScript();
+  }, []);
+  
   const handlePayment = async () => {
+    console.log('Payment initiated');
+    
     if (!isAuthenticated || !user) {
       toast.error('Please login to continue');
       navigate('/login');
@@ -90,12 +105,15 @@ const CheckoutPage = () => {
     try {
       console.log("Initiating payment process");
       
+      // Make sure Razorpay script is loaded
       if (!window.Razorpay) {
         console.log("Loading Razorpay script");
         await PaymentService.loadRazorpayScript();
         console.log("Razorpay script loaded");
       }
       
+      // Create order in Razorpay
+      console.log('Creating order with user:', user);
       const orderData = await PaymentService.createRazorpayOrder(
         user,
         total,
@@ -105,6 +123,7 @@ const CheckoutPage = () => {
       
       console.log("Order created successfully:", orderData);
       
+      // Configure Razorpay options
       const options = {
         key: orderData.key,
         amount: orderData.amount,
@@ -123,7 +142,7 @@ const CheckoutPage = () => {
         },
         handler: async function(response: any) {
           try {
-            console.log("Payment successful, verifying payment");
+            console.log("Payment successful, verifying payment:", response);
             await PaymentService.verifyRazorpayPayment(response, orderData.db_order_id);
             
             console.log("Payment verified successfully");
@@ -146,13 +165,14 @@ const CheckoutPage = () => {
         },
       };
       
+      // Initialize Razorpay checkout
       PaymentService.initializeRazorpayCheckout(
         options,
         () => {}, // Success is handled in the handler option
         (error) => {
           console.error("Payment failed:", error);
-          toast.error(`Payment failed: ${error.description}`);
-          setError(`Payment failed: ${error.description}`);
+          toast.error(`Payment failed: ${error.description || error.message || 'Unknown error'}`);
+          setError(`Payment failed: ${error.description || error.message || 'Unknown error'}`);
           setIsProcessing(false);
         }
       );

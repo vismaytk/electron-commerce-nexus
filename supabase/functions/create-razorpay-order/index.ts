@@ -8,8 +8,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("Create Razorpay order function called");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("Handling OPTIONS request");
     return new Response("ok", { headers: corsHeaders });
   }
 
@@ -52,6 +55,7 @@ serve(async (req) => {
     let reqBody;
     try {
       reqBody = await req.json();
+      console.log("Request body:", JSON.stringify(reqBody));
     } catch (e) {
       console.error("Failed to parse request body:", e);
       return new Response(
@@ -88,6 +92,10 @@ serve(async (req) => {
 
     // Create Razorpay order
     const auth = btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`);
+    
+    const amountInPaise = Math.round(amount * 100); // Convert to paise and ensure it's an integer
+    console.log("Amount in paise:", amountInPaise);
+    
     const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
@@ -95,7 +103,7 @@ serve(async (req) => {
         Authorization: `Basic ${auth}`,
       },
       body: JSON.stringify({
-        amount: Math.round(amount * 100), // Convert to paise and ensure it's an integer
+        amount: amountInPaise,
         currency,
         receipt: `order_${Date.now()}`,
         notes: {
@@ -151,6 +159,8 @@ serve(async (req) => {
       );
     }
 
+    console.log("Order saved to database:", orderData.id);
+
     // Add order items
     const orderItems = simplifiedItems.map((item) => ({
       order_id: orderData.id,
@@ -173,6 +183,8 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log("Order items saved to database");
 
     return new Response(
       JSON.stringify({

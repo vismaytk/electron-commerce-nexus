@@ -9,8 +9,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("Verify Razorpay payment function called");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("Handling OPTIONS request");
     return new Response("ok", { headers: corsHeaders });
   }
 
@@ -51,6 +54,7 @@ serve(async (req) => {
     let reqBody;
     try {
       reqBody = await req.json();
+      console.log("Request body:", JSON.stringify(reqBody));
     } catch (e) {
       console.error("Failed to parse request body:", e);
       return new Response(
@@ -89,11 +93,13 @@ serve(async (req) => {
       .digest("hex");
 
     const isAuthentic = generatedSignature === razorpay_signature;
+    
+    console.log("Generated signature:", generatedSignature);
+    console.log("Received signature:", razorpay_signature);
+    console.log("Signature verification:", isAuthentic ? "Success" : "Failed");
 
     if (!isAuthentic) {
       console.error("Payment verification failed - signature mismatch");
-      console.error("Generated signature:", generatedSignature);
-      console.error("Received signature:", razorpay_signature);
       
       // Update order status to failed
       await supabase
@@ -102,7 +108,7 @@ serve(async (req) => {
         .eq("id", db_order_id);
 
       return new Response(
-        JSON.stringify({ error: "Payment verification failed" }),
+        JSON.stringify({ error: "Payment verification failed - signature mismatch" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -122,6 +128,7 @@ serve(async (req) => {
           razorpay_order_id,
           razorpay_payment_id,
           razorpay_signature,
+          verified_at: new Date().toISOString(),
         },
       })
       .eq("id", db_order_id);
