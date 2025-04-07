@@ -1,245 +1,228 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 
 const LoginPage = () => {
-  const { login, signup, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { login, signup, isAuthenticated, user, isLoading } = useAuth();
+  const from = location.state?.from || '/';
   
-  // Get redirect path from location state or default to home
-  const from = location.state?.from?.pathname || '/';
-  
-  // Login form state
+  // Form states
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  
-  // Register form state
-  const [registerName, setRegisterName] = useState('');
-  const [registerEmail, setRegisterEmail] = useState('');
-  const [registerPassword, setRegisterPassword] = useState('');
-  const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
-  const [registerError, setRegisterError] = useState('');
+  const [signupName, setSignupName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      navigate(from, { replace: true });
+    if (isAuthenticated && user && !isLoading) {
+      console.log('User is authenticated, redirecting from login page to:', from);
+      // Add a small delay to ensure the auth state is fully processed
+      setTimeout(() => {
+        navigate(from, { replace: true });
+      }, 100);
     }
-  }, [isAuthenticated, navigate, from, isLoading]);
+  }, [isAuthenticated, user, isLoading, navigate, from]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError('');
     
     if (!loginEmail || !loginPassword) {
-      setLoginError('Please fill in all fields');
+      toast.error('Please enter both email and password');
       return;
     }
     
     try {
+      setIsSubmitting(true);
+      console.log('Attempting login with:', loginEmail);
+      
       await login(loginEmail, loginPassword);
-      navigate(from, { replace: true });
+      
+      // The redirect will happen in the useEffect above
+      console.log('Login successful, redirect should happen via useEffect');
+      
+      // Add manual navigation as a backup
+      setTimeout(() => {
+        if (location.state?.from) {
+          console.log('Manual redirect to:', location.state.from);
+          navigate(location.state.from, { replace: true });
+        } else {
+          console.log('Manual redirect to home');
+          navigate('/', { replace: true });
+        }
+      }, 500);
+      
     } catch (error: any) {
-      setLoginError(error.message || 'Login failed');
+      console.error('Login error:', error);
+      toast.error(`Login failed: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setRegisterError('');
     
-    if (!registerName || !registerEmail || !registerPassword || !registerConfirmPassword) {
-      setRegisterError('Please fill in all fields');
+    if (!signupName || !signupEmail || !signupPassword) {
+      toast.error('Please fill out all fields');
       return;
     }
     
-    if (registerPassword !== registerConfirmPassword) {
-      setRegisterError('Passwords do not match');
-      return;
-    }
-    
-    if (registerPassword.length < 6) {
-      setRegisterError('Password must be at least 6 characters');
+    if (signupPassword.length < 6) {
+      toast.error('Password must be at least 6 characters long');
       return;
     }
     
     try {
-      await signup(registerEmail, registerPassword, registerName);
-      // In real Supabase Auth, the user would need to verify their email
-      // so we don't automatically navigate away
+      setIsSubmitting(true);
+      console.log('Attempting signup with:', signupEmail);
+      
+      await signup(signupEmail, signupPassword, signupName);
+      
+      // Attempt login after signup
+      await login(signupEmail, signupPassword);
+      
+      toast.success('Account created successfully! You are now logged in.');
+      
+      // The redirect will happen in the useEffect above
+      console.log('Signup successful, redirect should happen via useEffect');
+      
+      // Add manual navigation as a backup
+      setTimeout(() => {
+        if (location.state?.from) {
+          console.log('Manual redirect to:', location.state.from);
+          navigate(location.state.from, { replace: true });
+        } else {
+          console.log('Manual redirect to home');
+          navigate('/', { replace: true });
+        }
+      }, 500);
+      
     } catch (error: any) {
-      console.error('Registration error:', error);
-      setRegisterError(error.message || 'Registration failed');
+      console.error('Signup error:', error);
+      toast.error(`Signup failed: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
+  
+  // If already logged in, don't show the login page
+  if (isAuthenticated && !isLoading) {
+    return null;
+  }
   
   return (
-    <div className="container-custom py-12">
-      <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-        <div className="px-6 py-8">
-          <h1 className="text-2xl font-display font-bold text-center mb-6">Welcome to ElectroNexus</h1>
+    <div className="container-custom flex items-center justify-center min-h-[80vh] py-8">
+      <div className="w-full max-w-md">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 border border-gray-200 dark:border-gray-700">
+          <h1 className="text-2xl font-display font-bold text-center mb-6">Welcome to GADA ELECTRONICS</h1>
           
-          <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid grid-cols-2 mb-6">
               <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
-              <form onSubmit={handleLogin}>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between items-baseline">
-                      <Label htmlFor="password">Password</Label>
-                      <a 
-                        href="#" 
-                        className="text-sm text-tech-blue hover:text-tech-blue-dark dark:text-tech-blue-light dark:hover:text-tech-blue transition-colors"
-                      >
-                        Forgot password?
-                      </a>
-                    </div>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  {loginError && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{loginError}</AlertDescription>
-                    </Alert>
-                  )}
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark transition-colors"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Logging in...' : 'Login'}
-                  </Button>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    required
+                  />
                 </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="login-password">Password</Label>
+                  </div>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Logging in...' : 'Login'}
+                </Button>
               </form>
-              
-              <div className="mt-6">
-                <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-                  For demo purposes, you can use:
-                </p>
-                <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-                  User: user@example.com / Password: user123
-                </p>
-                <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-                  Admin: admin@example.com / Password: admin123
-                </p>
-              </div>
             </TabsContent>
             
-            <TabsContent value="register">
-              <form onSubmit={handleRegister}>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="Enter your name"
-                      value={registerName}
-                      onChange={(e) => setRegisterName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="register-email">Email</Label>
-                    <Input
-                      id="register-email"
-                      type="text" 
-                      placeholder="Enter your email"
-                      value={registerEmail}
-                      onChange={(e) => setRegisterEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="register-password">Password</Label>
-                    <Input
-                      id="register-password"
-                      type="password"
-                      placeholder="Create a password"
-                      value={registerPassword}
-                      onChange={(e) => setRegisterPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="confirm-password">Confirm Password</Label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      placeholder="Confirm your password"
-                      value={registerConfirmPassword}
-                      onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  {registerError && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{registerError}</AlertDescription>
-                    </Alert>
-                  )}
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark transition-colors"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Creating Account...' : 'Create Account'}
-                  </Button>
+            <TabsContent value="signup">
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Input
+                    id="signup-name"
+                    placeholder="John Doe"
+                    value={signupName}
+                    onChange={(e) => setSignupName(e.target.value)}
+                    required
+                  />
                 </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Password must be at least 6 characters long
+                  </p>
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Creating Account...' : 'Create Account'}
+                </Button>
               </form>
             </TabsContent>
           </Tabs>
           
-          <Separator className="my-6" />
-          
-          <div className="text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              By signing in or creating an account, you agree to our <a href="#" className="text-tech-blue hover:text-tech-blue-dark dark:text-tech-blue-light dark:hover:text-tech-blue transition-colors">Terms of Service</a> and <a href="#" className="text-tech-blue hover:text-tech-blue-dark dark:text-tech-blue-light dark:hover:text-tech-blue transition-colors">Privacy Policy</a>.
-            </p>
-            
-            <Link to="/" className="text-tech-blue hover:text-tech-blue-dark dark:text-tech-blue-light dark:hover:text-tech-blue transition-colors">
-              Return to Home
-            </Link>
+          <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            By continuing, you agree to our Terms of Service and Privacy Policy.
           </div>
         </div>
       </div>
