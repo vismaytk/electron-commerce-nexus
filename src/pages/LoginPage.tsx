@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { AlertTriangle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const LoginPage = () => {
@@ -22,7 +22,6 @@ const LoginPage = () => {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
   
   // Register form state
   const [registerName, setRegisterName] = useState('');
@@ -30,20 +29,16 @@ const LoginPage = () => {
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
   const [registerError, setRegisterError] = useState('');
-  const [isRegisterSubmitting, setIsRegisterSubmitting] = useState(false);
   
   // Redirect if already authenticated
   useEffect(() => {
-    console.log('LoginPage: Auth state changed:', { isAuthenticated, isLoading, from });
     if (isAuthenticated && !isLoading) {
-      console.log('LoginPage: Redirecting to:', from);
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, from, isLoading]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('LoginPage: Login attempt started');
     setLoginError('');
     
     if (!loginEmail || !loginPassword) {
@@ -51,34 +46,16 @@ const LoginPage = () => {
       return;
     }
     
-    setIsLoginSubmitting(true);
     try {
-      console.log('LoginPage: Calling login function');
       await login(loginEmail, loginPassword);
-      
-      console.log('LoginPage: Login function returned, checking auth state');
-      // After successful login, manually navigate in case the useEffect doesn't trigger immediately
-      if (isAuthenticated) {
-        console.log('LoginPage: Already authenticated, navigating immediately');
-        navigate(from, { replace: true });
-      } else {
-        console.log('LoginPage: Not yet authenticated, navigating with delay');
-        // Give a small timeout to allow auth state to propagate
-        setTimeout(() => {
-          navigate(from, { replace: true });
-        }, 500);
-      }
+      navigate(from, { replace: true });
     } catch (error: any) {
-      console.error('LoginPage: Login error:', error);
       setLoginError(error.message || 'Login failed');
-    } finally {
-      setIsLoginSubmitting(false);
     }
   };
   
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('LoginPage: Register attempt started');
     setRegisterError('');
     
     if (!registerName || !registerEmail || !registerPassword || !registerConfirmPassword) {
@@ -96,28 +73,13 @@ const LoginPage = () => {
       return;
     }
     
-    setIsRegisterSubmitting(true);
     try {
-      console.log('LoginPage: Calling signup function');
       await signup(registerEmail, registerPassword, registerName);
-      
-      console.log('LoginPage: Signup function returned, checking auth state');
-      // After successful registration, check auth state
-      if (isAuthenticated) {
-        console.log('LoginPage: Already authenticated after signup, navigating immediately');
-        navigate(from, { replace: true });
-      } else {
-        console.log('LoginPage: Not yet authenticated after signup, forcing navigation with delay');
-        // Force navigation even if auth state hasn't updated yet
-        setTimeout(() => {
-          navigate(from, { replace: true });
-        }, 1000);
-      }
+      // In real Supabase Auth, the user would need to verify their email
+      // so we don't automatically navigate away
     } catch (error: any) {
-      console.error('LoginPage: Registration error:', error);
+      console.error('Registration error:', error);
       setRegisterError(error.message || 'Registration failed');
-    } finally {
-      setIsRegisterSubmitting(false);
     }
   };
   
@@ -144,7 +106,6 @@ const LoginPage = () => {
                       placeholder="Enter your email"
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
-                      disabled={isLoginSubmitting}
                       required
                     />
                   </div>
@@ -165,14 +126,13 @@ const LoginPage = () => {
                       placeholder="Enter your password"
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
-                      disabled={isLoginSubmitting}
                       required
                     />
                   </div>
                   
                   {loginError && (
                     <Alert variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
+                      <AlertCircle className="h-4 w-4" />
                       <AlertDescription>{loginError}</AlertDescription>
                     </Alert>
                   )}
@@ -180,9 +140,9 @@ const LoginPage = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark transition-colors"
-                    disabled={isLoginSubmitting}
+                    disabled={isLoading}
                   >
-                    {isLoginSubmitting ? 'Logging in...' : 'Login'}
+                    {isLoading ? 'Logging in...' : 'Login'}
                   </Button>
                 </div>
               </form>
@@ -211,7 +171,6 @@ const LoginPage = () => {
                       placeholder="Enter your name"
                       value={registerName}
                       onChange={(e) => setRegisterName(e.target.value)}
-                      disabled={isRegisterSubmitting}
                       required
                     />
                   </div>
@@ -220,11 +179,10 @@ const LoginPage = () => {
                     <Label htmlFor="register-email">Email</Label>
                     <Input
                       id="register-email"
-                      type="email" 
+                      type="text" 
                       placeholder="Enter your email"
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
-                      disabled={isRegisterSubmitting}
                       required
                     />
                   </div>
@@ -237,7 +195,6 @@ const LoginPage = () => {
                       placeholder="Create a password"
                       value={registerPassword}
                       onChange={(e) => setRegisterPassword(e.target.value)}
-                      disabled={isRegisterSubmitting}
                       required
                     />
                   </div>
@@ -250,14 +207,13 @@ const LoginPage = () => {
                       placeholder="Confirm your password"
                       value={registerConfirmPassword}
                       onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                      disabled={isRegisterSubmitting}
                       required
                     />
                   </div>
                   
                   {registerError && (
                     <Alert variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
+                      <AlertCircle className="h-4 w-4" />
                       <AlertDescription>{registerError}</AlertDescription>
                     </Alert>
                   )}
@@ -265,9 +221,9 @@ const LoginPage = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-tech-blue hover:bg-tech-blue-dark dark:bg-tech-blue dark:hover:bg-tech-blue-dark transition-colors"
-                    disabled={isRegisterSubmitting}
+                    disabled={isLoading}
                   >
-                    {isRegisterSubmitting ? 'Creating Account...' : 'Create Account'}
+                    {isLoading ? 'Creating Account...' : 'Create Account'}
                   </Button>
                 </div>
               </form>
