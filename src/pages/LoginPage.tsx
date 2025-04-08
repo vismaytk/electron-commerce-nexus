@@ -26,10 +26,7 @@ const LoginPage = () => {
   useEffect(() => {
     if (isAuthenticated && user && !isLoading) {
       console.log('User is authenticated, redirecting from login page to:', from);
-      // Add a small delay to ensure the auth state is fully processed
-      setTimeout(() => {
-        navigate(from, { replace: true });
-      }, 100);
+      navigate(from, { replace: true });
     }
   }, [isAuthenticated, user, isLoading, navigate, from]);
   
@@ -46,20 +43,7 @@ const LoginPage = () => {
       console.log('Attempting login with:', loginEmail);
       
       await login(loginEmail, loginPassword);
-      
-      // The redirect will happen in the useEffect above
-      console.log('Login successful, redirect should happen via useEffect');
-      
-      // Add manual navigation as a backup
-      setTimeout(() => {
-        if (location.state?.from) {
-          console.log('Manual redirect to:', location.state.from);
-          navigate(location.state.from, { replace: true });
-        } else {
-          console.log('Manual redirect to home');
-          navigate('/', { replace: true });
-        }
-      }, 500);
+      // Redirection is handled by the useEffect hook above
       
     } catch (error: any) {
       console.error('Login error:', error);
@@ -93,19 +77,7 @@ const LoginPage = () => {
       
       toast.success('Account created successfully! You are now logged in.');
       
-      // The redirect will happen in the useEffect above
-      console.log('Signup successful, redirect should happen via useEffect');
-      
-      // Add manual navigation as a backup
-      setTimeout(() => {
-        if (location.state?.from) {
-          console.log('Manual redirect to:', location.state.from);
-          navigate(location.state.from, { replace: true });
-        } else {
-          console.log('Manual redirect to home');
-          navigate('/', { replace: true });
-        }
-      }, 500);
+      // Redirection is handled by the useEffect hook above
       
     } catch (error: any) {
       console.error('Signup error:', error);

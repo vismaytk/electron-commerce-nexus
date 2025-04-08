@@ -38,6 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
           if (profileError) {
             console.error('Error fetching user profile:', profileError);
+            setIsLoading(false);
             return;
           }
           
@@ -52,13 +53,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } catch (error) {
           console.error('Error in auth state change handler:', error);
+        } finally {
+          setIsLoading(false);
         }
       } else {
         console.log("No user in session, clearing user state");
         setUser(null);
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     });
     
     // THEN check for existing session
@@ -68,7 +70,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          throw error;
+          console.error("Session error:", error);
+          setIsLoading(false);
+          return;
         }
         
         if (session?.user) {
@@ -80,7 +84,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .single();
             
           if (profileError) {
-            throw profileError;
+            console.error("Profile error:", profileError);
+            setIsLoading(false);
+            return;
           }
           
           if (data) {
@@ -120,28 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
       
-      if (data.user) {
-        console.log("Login successful, fetching profile");
-        // Immediately update user data after login
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-          
-        if (profileError) {
-          console.error("Error fetching profile after login:", profileError);
-        } else if (profileData) {
-          console.log("Setting user data after login");
-          setUser({
-            id: data.user.id,
-            email: data.user.email || '',
-            name: profileData.name || '',
-            isAdmin: profileData.is_admin || false,
-          });
-        }
-      }
-      
+      // Return the data so the login page can know it succeeded
       toast.success('Logged in successfully!');
       return data;
     } catch (error: any) {
@@ -177,9 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
       
-      // Note: We do not set user here since onAuthStateChange will handle it
-      // or login after signup should handle it
-      
+      // Return the data so the signup page can know it succeeded
       toast.success('Account created successfully!');
       return data;
     } catch (error: any) {
