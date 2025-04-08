@@ -24,11 +24,11 @@ const LoginPage = () => {
   
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && user && !isLoading) {
+    if (isAuthenticated && user) {
       console.log('User is authenticated, redirecting from login page to:', from);
       navigate(from, { replace: true });
     }
-  }, [isAuthenticated, user, isLoading, navigate, from]);
+  }, [isAuthenticated, user, navigate, from]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,14 +40,11 @@ const LoginPage = () => {
     
     try {
       setIsSubmitting(true);
-      console.log('Attempting login with:', loginEmail);
-      
       await login(loginEmail, loginPassword);
-      // Redirection is handled by the useEffect hook above
-      
+      // Auth context will handle the navigation after login is successful
     } catch (error: any) {
       console.error('Login error:', error);
-      toast.error(`Login failed: ${error.message}`);
+      // Toast error is handled in the auth context
     } finally {
       setIsSubmitting(false);
     }
@@ -68,28 +65,36 @@ const LoginPage = () => {
     
     try {
       setIsSubmitting(true);
-      console.log('Attempting signup with:', signupEmail);
-      
       await signup(signupEmail, signupPassword, signupName);
       
-      // Attempt login after signup
+      // Let's directly try logging in after signup
       await login(signupEmail, signupPassword);
       
       toast.success('Account created successfully! You are now logged in.');
-      
-      // Redirection is handled by the useEffect hook above
-      
+      // Auth context will handle the navigation
     } catch (error: any) {
       console.error('Signup error:', error);
-      toast.error(`Signup failed: ${error.message}`);
+      // Toast error is handled in the auth context
     } finally {
       setIsSubmitting(false);
     }
   };
   
-  // If already logged in, don't show the login page
-  if (isAuthenticated && !isLoading) {
-    return null;
+  // Don't render the login form if we're already logged in or still loading
+  if (isLoading) {
+    return (
+      <div className="container-custom flex items-center justify-center min-h-[80vh] py-8">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+  
+  if (isAuthenticated && user) {
+    return (
+      <div className="container-custom flex items-center justify-center min-h-[80vh] py-8">
+        <p>Already logged in. Redirecting...</p>
+      </div>
+    );
   }
   
   return (
