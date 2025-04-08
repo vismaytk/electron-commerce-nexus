@@ -26,7 +26,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Missing Razorpay credentials" }),
         {
-          status: 500,
+          status: 200, // Always use 200 to avoid Edge Function errors
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -43,7 +43,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Missing Supabase credentials" }),
         {
-          status: 500,
+          status: 200, // Always use 200 to avoid Edge Function errors
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -61,7 +61,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Invalid request body" }),
         {
-          status: 400,
+          status: 200, // Always use 200 to avoid Edge Function errors
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -81,7 +81,7 @@ serve(async (req) => {
           } 
         }),
         {
-          status: 400,
+          status: 200, // Always use 200 to avoid Edge Function errors
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -96,114 +96,125 @@ serve(async (req) => {
     const amountInPaise = Math.round(amount * 100); // Convert to paise and ensure it's an integer
     console.log("Amount in paise:", amountInPaise);
     
-    const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${auth}`,
-      },
-      body: JSON.stringify({
-        amount: amountInPaise,
-        currency,
-        receipt: `order_${Date.now()}`,
-        notes: {
-          company_name: "GADA ELECTRONICS"
-        }
-      }),
-    });
+    try {
+      const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${auth}`,
+        },
+        body: JSON.stringify({
+          amount: amountInPaise,
+          currency,
+          receipt: `order_${Date.now()}`,
+          notes: {
+            company_name: "GADA ELECTRONICS"
+          }
+        }),
+      });
 
-    const razorpayData = await razorpayResponse.json();
-    console.log("Razorpay API response:", razorpayData);
+      const razorpayData = await razorpayResponse.json();
+      console.log("Razorpay API response:", razorpayData);
 
-    // Handle Razorpay API errors
-    if (!razorpayResponse.ok) {
-      console.error("Razorpay API error:", razorpayData);
-      return new Response(
-        JSON.stringify({ error: "Razorpay API error", details: razorpayData }),
-        {
-          status: 200, // Changed from 400 to 200 to avoid Edge Function error
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    // Simplify order items to avoid any complex data issues
-    const simplifiedItems = order_details.items.map((item) => ({
-      product_id: item.product.id,
-      quantity: item.quantity,
-      price_at_purchase: item.product.price,
-    }));
-
-    // Save order to database
-    const { data: orderData, error: orderError } = await supabase
-      .from("orders")
-      .insert({
-        user_id,
-        total: amount,
-        status: "pending",
-        shipping_address: order_details.shipping_address,
-        razorpay_order_id: razorpayData.id,
-      })
-      .select()
-      .single();
-
-    if (orderError) {
-      console.error("Database error:", orderError);
-      return new Response(
-        JSON.stringify({ error: `Database error: ${orderError.message}` }),
-        {
-          status: 200, // Changed from 500 to 200 to avoid Edge Function error
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    console.log("Order saved to database:", orderData.id);
-
-    // Add order items
-    const orderItems = simplifiedItems.map((item) => ({
-      order_id: orderData.id,
-      product_id: item.product_id,
-      quantity: item.quantity,
-      price_at_purchase: item.price_at_purchase,
-    }));
-
-    const { error: itemsError } = await supabase
-      .from("order_items")
-      .insert(orderItems);
-
-    if (itemsError) {
-      console.error("Database error for order items:", itemsError);
-      return new Response(
-        JSON.stringify({ error: `Database error: ${itemsError.message}` }),
-        {
-          status: 200, // Changed from 500 to 200 to avoid Edge Function error
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    console.log("Order items saved to database");
-
-    return new Response(
-      JSON.stringify({
-        order_id: razorpayData.id,
-        db_order_id: orderData.id,
-        amount: razorpayData.amount,
-        currency: razorpayData.currency,
-        key: RAZORPAY_KEY_ID,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      // Handle Razorpay API errors
+      if (!razorpayResponse.ok) {
+        console.error("Razorpay API error:", razorpayData);
+        return new Response(
+          JSON.stringify({ error: "Razorpay API error", details: razorpayData }),
+          {
+            status: 200, // Always use 200 to avoid Edge Function errors
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
-    );
+
+      // Simplify order items to avoid any complex data issues
+      const simplifiedItems = order_details.items.map((item) => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price_at_purchase: item.product.price,
+      }));
+
+      // Save order to database
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          user_id,
+          total: amount,
+          status: "pending",
+          shipping_address: order_details.shipping_address,
+          razorpay_order_id: razorpayData.id,
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error("Database error:", orderError);
+        return new Response(
+          JSON.stringify({ error: `Database error: ${orderError.message}` }),
+          {
+            status: 200, // Always use 200 to avoid Edge Function errors
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      console.log("Order saved to database:", orderData.id);
+
+      // Add order items
+      const orderItems = simplifiedItems.map((item) => ({
+        order_id: orderData.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price_at_purchase: item.price_at_purchase,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(orderItems);
+
+      if (itemsError) {
+        console.error("Database error for order items:", itemsError);
+        return new Response(
+          JSON.stringify({ error: `Database error: ${itemsError.message}` }),
+          {
+            status: 200, // Always use 200 to avoid Edge Function errors
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      console.log("Order items saved to database");
+
+      return new Response(
+        JSON.stringify({
+          order_id: razorpayData.id,
+          db_order_id: orderData.id,
+          amount: razorpayData.amount,
+          currency: razorpayData.currency,
+          key: RAZORPAY_KEY_ID,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    } catch (razorpayError) {
+      console.error("Razorpay request error:", razorpayError);
+      return new Response(
+        JSON.stringify({ error: razorpayError.message }),
+        {
+          status: 200, // Always use 200 to avoid Edge Function errors
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
   } catch (error) {
     console.error("Function error:", error.message, error.stack);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        status: 200, // Changed from 500 to 200 to avoid Edge Function error
+        status: 200, // Always use 200 to avoid Edge Function errors
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
