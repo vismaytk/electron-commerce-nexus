@@ -48,7 +48,7 @@ const HomePage = () => {
             </div>
             <div className="hidden md:block">
               <img 
-                src="/placeholder.svg" 
+                src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2070&auto=format&fit=crop" 
                 alt="Latest electronics" 
                 className="max-w-full h-auto rounded-lg shadow-2xl"
               />

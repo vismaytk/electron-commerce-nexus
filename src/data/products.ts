@@ -16,7 +16,10 @@ export const PRODUCTS: Product[] = [
       "HDR10+ Support",
       "3 HDMI Ports"
     ],
-    images: ["/placeholder.svg", "/placeholder.svg"],
+    images: [
+      "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?q=80&w=2070&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1567690187548-f07b1d7bf5a9?q=80&w=1776&auto=format&fit=crop"
+    ],
     rating: 4.7,
     reviewCount: 125,
     stock: 15,
@@ -45,7 +48,10 @@ export const PRODUCTS: Product[] = [
       "Water and Sweat Resistant",
       "Touch Controls"
     ],
-    images: ["/placeholder.svg", "/placeholder.svg"],
+    images: [
+      "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=1932&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?q=80&w=1770&auto=format&fit=crop"
+    ],
     rating: 4.8,
     reviewCount: 342,
     stock: 50,
@@ -74,7 +80,10 @@ export const PRODUCTS: Product[] = [
       "Backlit Keyboard",
       "Fingerprint Reader"
     ],
-    images: ["/placeholder.svg", "/placeholder.svg"],
+    images: [
+      "https://images.unsplash.com/photo-1531297484001-80022131f5a1?q=80&w=2070&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=2071&auto=format&fit=crop"
+    ],
     rating: 4.9,
     reviewCount: 201,
     stock: 10,
@@ -101,7 +110,10 @@ export const PRODUCTS: Product[] = [
       "Water Resistant to 50m",
       "18-hour Battery Life"
     ],
-    images: ["/placeholder.svg", "/placeholder.svg"],
+    images: [
+      "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?q=80&w=2027&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=1772&auto=format&fit=crop"
+    ],
     rating: 4.6,
     reviewCount: 178,
     stock: 25,
@@ -127,7 +139,10 @@ export const PRODUCTS: Product[] = [
       "Dual Card Slots",
       "Weather-Sealed Body"
     ],
-    images: ["/placeholder.svg", "/placeholder.svg"],
+    images: [
+      "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1964&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?q=80&w=1770&auto=format&fit=crop"
+    ],
     rating: 4.9,
     reviewCount: 87,
     stock: 5,
@@ -153,7 +168,10 @@ export const PRODUCTS: Product[] = [
       "Face ID",
       "5G Capable"
     ],
-    images: ["/placeholder.svg", "/placeholder.svg"],
+    images: [
+      "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?q=80&w=2070&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=2070&auto=format&fit=crop"
+    ],
     rating: 4.8,
     reviewCount: 456,
     stock: 20,
@@ -174,36 +192,36 @@ export const CATEGORIES: Category[] = [
     id: "1",
     name: "Smartphones",
     slug: "phones",
-    image: "/placeholder.svg"
+    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02ff9?q=80&w=2080&auto=format&fit=crop"
   },
   {
     id: "2",
     name: "Laptops",
     slug: "computers",
-    image: "/placeholder.svg"
+    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=2071&auto=format&fit=crop"
   },
   {
     id: "3",
     name: "Audio",
     slug: "audio",
-    image: "/placeholder.svg"
+    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2070&auto=format&fit=crop"
   },
   {
     id: "4",
     name: "TVs",
     slug: "tvs",
-    image: "/placeholder.svg"
+    image: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?q=80&w=2070&auto=format&fit=crop"
   },
   {
     id: "5",
     name: "Wearables",
     slug: "wearables",
-    image: "/placeholder.svg"
+    image: "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?q=80&w=2027&auto=format&fit=crop"
   },
   {
     id: "6",
     name: "Cameras",
     slug: "cameras",
-    image: "/placeholder.svg"
+    image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1964&auto=format&fit=crop"
   }
 ];

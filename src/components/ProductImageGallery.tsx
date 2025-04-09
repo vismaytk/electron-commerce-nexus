@@ -17,6 +17,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({ images, name 
           src={images[selectedImage]} 
           alt={`${name} - view ${selectedImage + 1}`} 
           className="w-full object-contain h-96"
+          loading="lazy"
         />
       </div>
       
@@ -37,6 +38,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({ images, name 
                 src={image} 
                 alt={`Thumbnail ${index + 1}`} 
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
             </button>
           ))}

@@ -34,11 +34,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     <div className="product-card flex flex-col h-full">
       <div className="relative">
         <Link to={`/products/${id}`}>
-          <img 
-            src={images[0]} 
-            alt={name} 
-            className="w-full h-48 object-cover"
-          />
+          <div className="w-full h-48 overflow-hidden">
+            <img 
+              src={images[0]} 
+              alt={name} 
+              className="w-full h-full object-cover transition-all duration-300 hover:scale-105"
+              loading="lazy"
+            />
+          </div>
           {(isNew || discountPercentage) && (
             <div className="absolute top-2 left-2 flex flex-col gap-1">
               {isNew && (
